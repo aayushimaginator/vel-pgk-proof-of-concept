@@ -1,0 +1,85 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+ = ========                 |                                                  *
+ \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+ \\    /   O peration     | Website:  https://openfoam.org
+ \\  /    A nd           | Version:  14
+ \\/     M anipulation  |
+ \*---------------------------------------------------------------------------*/
+FoamFile
+{
+  format      ascii;
+  class       dictionary;
+  location    "system";
+  object      controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+solver          shockFluid;
+
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         0.005;
+
+deltaT          5e-10;              // Very safe start
+
+writeControl    runTime;
+writeInterval   1e-8;
+purgeWrite      15;
+writeFormat     ascii;
+writePrecision  8;
+writeCompression on;
+
+timeFormat      general;
+timePrecision   6;
+runTimeModifiable true;
+
+adjustTimeStep  yes;
+maxCo           0.1;
+maxDeltaT       2e-7;
+
+functions
+{
+  // Strong diagnostics – writes every time step at the beginning
+  fieldMinMax1
+  {
+    type            fieldMinMax;
+    libs            ("libfieldFunctionObjects.so");
+    writeControl    timeStep;
+    writeInterval   1;
+    log             yes;
+    location        yes;
+    mode            magnitude;
+    fields
+    (
+      p
+      T
+      U
+      rho
+      e
+      k
+      omega
+    );
+  }
+
+  // Write fields every few steps so we can inspect them if it crashes
+  writeFields
+  {
+    type            writeObjects;
+    libs            ("libutilityFunctionObjects.so");
+    writeControl    timeStep;
+    writeInterval   5;
+    objects
+    (
+      p
+      T
+      U
+      rho
+      e
+      k
+      omega
+    );
+  }
+}
+
+// ************************************************************************* //

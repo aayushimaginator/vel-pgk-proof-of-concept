@@ -1,0 +1,33 @@
+FoamFile
+{
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      T;
+}
+
+Tinf            288.15;
+dimensions      [0 0 0 1 0 0 0];
+internalField   uniform $Tinf;
+boundaryField
+{
+    inlet
+    {
+        type            freestream;
+        freestreamValue uniform $Tinf;
+    }
+    outlet
+    {
+        type            freestream;
+        freestreamValue uniform $Tinf;
+    }
+    tunnelWalls
+    {
+        type            freestream;
+        freestreamValue uniform $Tinf;
+    }
+    projectile
+    {
+        type            zeroGradient;
+    }
+}

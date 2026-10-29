@@ -1,0 +1,30 @@
+* ============================================================
+* PGK PMSM Alternator - 60mm OD, 8-pole, wye
+* Ke=0.0116 | R=0.006 | L=250u | default SPEED=13340 RPM rel
+* ============================================================
+.SUBCKT PMSM_ALT A B C PARAMS: SPEED=13340 POLES=8
+
+.PARAM PI=3.14159265358979
+.PARAM KE=0.0116
+.PARAM RS=0.006
+.PARAM LS=250u
+.PARAM OMEGA_M={2*PI*SPEED/60}
+.PARAM FREQ_E={POLES*SPEED/120}
+.PARAM OMEGA_E={2*PI*FREQ_E}
+.PARAM EPEAK={KE*OMEGA_M}
+
+RN NEUT 0 1MEG
+
+BEMF_A A_I NEUT V={EPEAK*sin(OMEGA_E*time)}
+RA A_I A_MIDA {RS}
+LA A_MIDA A {LS}
+
+BEMF_B B_I NEUT V={EPEAK*sin(OMEGA_E*time - 2*PI/3)}
+RB B_I B_MIDB {RS}
+LB B_MIDB B {LS}
+
+BEMF_C C_I NEUT V={EPEAK*sin(OMEGA_E*time + 2*PI/3)}
+RC C_I C_MIDC {RS}
+LC C_MIDC C {LS}
+
+.ENDS PMSM_ALT

@@ -1,0 +1,47 @@
+* ============================================================
+* PGK Power Stage - dwell HOLD, SWITCHED (micro) model
+* 20 kHz PWM, 50% duty, into 1 ohm brake. 10 ms window.
+* Checks ripple and peak switch/diode currents.
+* ============================================================
+.INCLUDE pmsm_model.cir
+
+.TRAN 0.2u 10m 0 0.2u UIC
+.OPTIONS RELTOL=0.003 ABSTOL=1e-9 VNTOL=1e-5 ITL4=200
+
+XALT PA PB PC PMSM_ALT SPEED=18580 POLES=8
+
+.MODEL DSCH D(IS=1e-14 N=1.05 RS=0.01 CJO=50p)
+D1 PA ALT_P DSCH
+D2 PB ALT_P DSCH
+D3 PC ALT_P DSCH
+D4 0 PA DSCH
+D5 0 PB DSCH
+D6 0 PC DSCH
+VSEN_A ALT_P DC_P DC 0
+
+CBUS DC_P 0 100u IC=23
+VSEN_C DC_P SC_TOP DC 0
+CSC  SC_TOP SC_INT 2.5 IC=23
+RESR SC_INT 0 0.05
+
+BLOAD DC_P 0 I={ V(DC_P) > 1 ? 30/V(DC_P) : 0 }
+
+* switched brake: 1 ohm behind MOSFET
+VSEN_B DC_P BRK_HI DC 0
+RBRAKE BRK_HI SW_N 1.0
+.MODEL SWBRK SW(VT=2.5 VH=0.5 RON=0.01 ROFF=10MEG)
+SBRAKE SW_N 0 GATE 0 SWBRK
+* 20 kHz, 50% duty = hold torque
+VGATE GATE 0 PULSE(0 5 0 1u 1u 25u 50u)
+
+.CONTROL
+run
+wrdata pgk_dwell_micro.dat V(DC_P) I(VSEN_B) I(VSEN_A) I(VSEN_C)
+meas tran v_bus_avg AVG V(DC_P) FROM=2m TO=10m
+meas tran v_bus_pp  PP  V(DC_P) FROM=2m TO=10m
+meas tran i_brk_pk  MAX I(VSEN_B) FROM=2m TO=10m
+meas tran i_brk_avg AVG I(VSEN_B) FROM=2m TO=10m
+meas tran i_alt_pk  MAX I(VSEN_A) FROM=2m TO=10m
+echo "=== dwell micro complete ==="
+.endc
+.END

@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.autosave
+*.slxc
+slprj/
+.directory
+VEL-repo/pgk_power_sim/*.raw
+VEL-repo/pgk_power_sim/*.dat
+VEL-repo/pgk_power_sim/*.mat
+VEL-repo/pgk_power_sim/*.log
+*.py
+*.py

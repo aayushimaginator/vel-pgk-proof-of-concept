@@ -1,0 +1,51 @@
+* ============================================================
+* PGK Power Stage - single dwell event, AVERAGE (macro) model
+* Brake = constant-power sink, flight-sim profile:
+*   1.00-1.40 s capture 276 W | 1.40-2.80 s hold 240 W
+* Supercap on bus through ESR. Muzzle operating point.
+* ============================================================
+.INCLUDE pmsm_model.cir
+
+.TRAN 20u 4s 0 20u UIC
+.OPTIONS RELTOL=0.003 ABSTOL=1e-9 VNTOL=1e-5 ITL4=200
+
+XALT PA PB PC PMSM_ALT SPEED=18580 POLES=8
+
+.MODEL DSCH D(IS=1e-14 N=1.05 RS=0.01 CJO=50p)
+D1 PA ALT_P DSCH
+D2 PB ALT_P DSCH
+D3 PC ALT_P DSCH
+D4 0 PA DSCH
+D5 0 PB DSCH
+D6 0 PC DSCH
+* alternator current into bus
+VSEN_A ALT_P DC_P DC 0
+
+CBUS DC_P 0 100u IC=23
+
+* supercap branch: sense, cap, ESR
+VSEN_C DC_P SC_TOP DC 0
+CSC  SC_TOP SC_INT 2.5 IC=23
+RESR SC_INT 0 0.05
+
+* 30 W constant-power electronics load
+BLOAD DC_P 0 I={ V(DC_P) > 1 ? 30/V(DC_P) : 0 }
+
+* brake power profile [W]
+VP_PROF PWRN 0 PWL(0 0 1.0 0 1.001 276 1.4 276 1.401 240 2.8 240 2.801 0 4 0)
+* brake as constant-power sink on the bus
+BBRAKE DC_P 0 I={ V(DC_P) > 1 ? V(PWRN)/V(DC_P) : 0 }
+
+.CONTROL
+run
+wrdata pgk_dwell_macro.dat V(DC_P) I(VSEN_A) I(VSEN_C) I(BBRAKE) I(BLOAD)
+meas tran v_bus_pre   AVG V(DC_P)   FROM=0.5 TO=0.9
+meas tran v_bus_dwell MIN V(DC_P)   FROM=1.0 TO=2.8
+meas tran v_bus_rec   AVG V(DC_P)   FROM=3.5 TO=4.0
+meas tran i_alt_dwell AVG I(VSEN_A) FROM=1.4 TO=2.8
+meas tran i_cap_min   MIN I(VSEN_C) FROM=1.0 TO=2.8
+meas tran i_cap_max   MAX I(VSEN_C) FROM=2.8 TO=4.0
+meas tran i_brk_avg   AVG I(BBRAKE) FROM=1.4 TO=2.8
+echo "=== dwell macro complete ==="
+.endc
+.END

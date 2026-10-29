@@ -1,0 +1,108 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  14
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      snappyHexMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+castellatedMesh true;
+snap            true;
+addLayers       false;
+
+geometry
+{
+    vehicle_repaired.stl
+    {
+        type triSurfaceMesh;
+        file "vehicle_repaired.stl";
+        name projectile;
+    }
+}
+
+castellatedMeshControls
+{
+    maxLocalCells   1000000;
+    maxGlobalCells  4000000;
+    minRefinementCells 10;
+    maxLoadUnbalance 0.10;
+    nCellsBetweenLevels 3;
+
+    features
+    (
+    );
+
+    refinementSurfaces
+    {
+        projectile
+        {
+            level (3 4);
+        }
+    }
+
+    resolveFeatureAngle 30;
+
+    refinementRegions
+    {
+    }
+
+    locationInMesh (-0.1 0 0);
+    allowFreeStandingZoneFaces true;
+}
+
+snapControls
+{
+    implicitFeatureSnap true;
+    explicitFeatureSnap false;
+    nSmoothPatch    3;
+    tolerance       2.0;
+    nSolveIter      30;
+    nRelaxIter      5;
+}
+
+
+
+addLayersControls
+{
+    relativeSizes   true;
+    layers
+    {
+        projectile
+        {
+            nSurfaceLayers 2;        // reduced from 3 — less aggressive extrusion
+        }
+    }
+    expansionRatio      1.15;         // gentler growth, reduced from 1.2
+    finalLayerThickness 0.2;          // reduced from 0.3 — thinner overall layer
+    minThickness        0.1;          // raised significantly — layers below this fraction get dropped cleanly instead of surviving as degenerate slivers
+    nGrow               0;
+    featureAngle        60;
+    nRelaxIter          5;
+    nSmoothSurfaceNormals 1;
+    nSmoothNormals      3;
+    nSmoothThickness    10;
+    maxFaceThicknessRatio 0.4;        // tightened from 0.5 — rejects more marginal faces
+    maxThicknessToMedialRatio 0.25;   // tightened — backs off harder near thin (fin) sections
+    minMedialAxisAngle  130;          // raised — more conservative near sharp/thin edges
+    nBufferCellsNoExtrude 0;
+    nLayerIter          50;
+}
+
+
+meshQualityControls
+{
+    #includeEtc "caseDicts/mesh/generation/meshQualityDict"
+}
+
+debug 0;
+mergeTolerance 1e-6;
+
+// ************************************************************************* //

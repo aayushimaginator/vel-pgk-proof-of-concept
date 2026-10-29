@@ -1,0 +1,77 @@
+* ============================================================
+* PGK AC-SIDE DWELL BRAKE - MAX CAPABILITY CHECK
+* RBRAKE 0.15 ohm, L_SER 10 uH, 20 kHz PWM at ~100% duty
+* Supercap + constant-power load included (realistic bus)
+* ============================================================
+.INCLUDE pmsm_model.cir
+
+.TRAN 1u 50m 0 1u UIC
+.OPTIONS RELTOL=0.003 ABSTOL=1e-9 VNTOL=1e-5 ITL4=200
+
+XALT PA PB PC PMSM_ALT SPEED=18580 POLES=8
+
+.MODEL DSCH D(IS=1e-14 N=1.05 RS=0.01 CJO=50p)
+
+* ---------- MAIN DC BUS ----------
+VSEN_M PA PA_M DC 0
+D1 PA_M DC_P DSCH
+D2 PB DC_P DSCH
+D3 PC DC_P DSCH
+D4 0 PA_M DSCH
+D5 0 PB DSCH
+D6 0 PC DSCH
+
+CBUS DC_P 0 100u IC=23
+
+* constant-power 30 W electronics load
+VSEN_L DC_P LOAD_HI DC 0
+BLOAD LOAD_HI 0 I={ V(LOAD_HI) > 1 ? 30/V(LOAD_HI) : 0 }
+
+* shunt regulator with bleeder (convergence)
+VSEN_S DC_P SHUNT_HI DC 0
+RBLEED SHUNT_HI 0 1MEG
+BSHUNT SHUNT_HI 0 I={ (V(DC_P) > 24) ? (V(DC_P) - 24) / 1 : 0 }
+
+* supercapacitor branch
+VSEN_C DC_P SC_TOP DC 0
+CSC SC_TOP SC_INT 2.5 IC=23
+RESR SC_INT 0 0.05
+
+* ---------- BRAKE DC LINK (isolated) ----------
+D7 PA_M BRK_P DSCH
+D8 PB BRK_P DSCH
+D9 PC BRK_P DSCH
+D10 0 PA_M DSCH
+D11 0 PB DSCH
+D12 0 PC DSCH
+
+CBRK BRK_P 0 1u IC=0
+
+* brake branch: sense, inrush limiter, resistor, switch
+VSEN_B BRK_P BRK_HI DC 0
+L_SER BRK_HI BRK_R2 10u
+RBRAKE BRK_R2 SW_N 0.15
+.MODEL SWBRK SW(VT=2.5 VH=0.5 RON=0.01 ROFF=10MEG)
+SBRAKE SW_N 0 GATE 0 SWBRK
+
+* freewheeling diode clamps switch-node flyback
+D_FW SW_N BRK_P DSCH
+
+* 20 kHz, ~100% duty = MAX capability
+VGATE GATE 0 PULSE(0 5 0 1u 1u 49u 50u)
+
+.CONTROL
+run
+wrdata pgk_dwell_ac_max.dat V(DC_P) V(BRK_P) I(VSEN_B) I(VSEN_L) I(VSEN_S) I(VSEN_M) I(VSEN_C)
+meas tran v_main_avg  AVG V(DC_P)   FROM=10m TO=50m
+meas tran v_main_pp   PP  V(DC_P)   FROM=10m TO=50m
+meas tran v_brk_avg   AVG V(BRK_P)  FROM=10m TO=50m
+meas tran i_brk_avg   AVG I(VSEN_B) FROM=10m TO=50m
+meas tran i_brk_pk    MAX I(VSEN_B) FROM=10m TO=50m
+meas tran i_shunt_avg AVG I(VSEN_S) FROM=10m TO=50m
+meas tran i_alt_rms   RMS I(VSEN_M) FROM=10m TO=50m
+meas tran i_cap_min   MIN I(VSEN_C) FROM=10m TO=50m
+meas tran i_cap_max   MAX I(VSEN_C) FROM=10m TO=50m
+echo "=== AC brake MAX capability complete ==="
+.endc
+.END

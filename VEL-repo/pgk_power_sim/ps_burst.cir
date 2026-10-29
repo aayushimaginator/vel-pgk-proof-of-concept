@@ -1,0 +1,61 @@
+* ============================================================
+* ps_burst.cir - charge-burst operating point + cap inrush check
+* Alternator @13340 RPM; heavy resistive load simulates harvest torque;
+* 3F supercap from 0V through 0.3 ohm precharge/NTC (bypassed at 1s).
+* Sweeps R_BURST to map the alternator load-line knee.
+* ============================================================
+.INCLUDE pmsm_model.cir
+
+.TRAN 50u 9s 0 50u UIC
+.OPTIONS RELTOL=0.003 ABSTOL=1e-9 VNTOL=1e-5 ITL4=200
+
+XALT PA PB PC PMSM_ALT SPEED=13340 POLES=8
+
+.MODEL DSCH D(IS=1e-14 N=1.05 RS=0.01 CJO=50p)
+
+* --- 0V Sense Sources for Current Measurement ---
+VSEN_D1 PA D1_A 0
+VSEN_D2 PB D2_A 0
+VSEN_D3 PC D3_A 0
+
+* Diodes
+D1 D1_A DC_P DSCH
+D2 D2_A DC_P DSCH
+D3 D3_A DC_P DSCH
+D4 0 PA DSCH
+D5 0 PB DSCH
+D6 0 PC DSCH
+
+* Bus and Cap (0.3 ohm RINR is the mandatory precharge/NTC)
+CBUS DC_P 0 22u IC=0
+RINR DC_P CAP_HI 0.3
+CSC  CAP_HI 0 3.0 IC=0
+
+* Bypass switch for RINR (closes at t=1.0s)
+.MODEL SWBYP SW(VT=0.5 VH=0.1 RON=0.005 ROFF=10MEG)
+VCTRL_SW SW_CTRL 0 PULSE(0 1 1.0 1m 1m 10 20)
+SBYPASS DC_P CAP_HI SW_CTRL 0 SWBYP
+
+* Avionics Load (30W at ~24V = 19.2 ohm)
+VSEN_L DC_P LOAD_HI DC 0
+RLOAD LOAD_HI 0 19.2
+
+* Burst Load (represents harvest torque)
+* Sweeping this value maps the alternator's load-line knee.
+R_BURST DC_P 0 1.5
+
+.CONTROL
+destroy all
+echo "=== Sweeping R_BURST to map alternator load-line knee ==="
+foreach val 1.5 2.2 3.3 4.7
+  alter R_BURST $val
+  run
+  meas tran i_diode_pk  max i(VSEN_D1) from=0 to=1
+  meas tran v_bus_avg   avg v(DC_P)    from=2 to=7
+  meas tran v_cap_7s    avg v(CAP_HI)  from=7 to=7.5
+  echo "R_BURST = $val ohm  ->  i_pk = $&i_diode_pk A | v_bus = $&v_bus_avg V | v_cap = $&v_cap_7s V"
+  reset
+end
+echo "=== Sweep complete ==="
+.endc
+.END

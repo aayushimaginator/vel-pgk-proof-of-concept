@@ -1,0 +1,30 @@
+# Simulation logs
+*.log
+
+# ngspice raw output
+*.raw
+
+# MATLAB generated data
+*.mat
+
+# MATLAB autosave/backup
+*.asv
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
+*.swp
+*~
+*.dat
+power_stage_muzzle.cir
+power_stage_mid.cir
+power_stage_terminal.cir
+
+# Generated ngspice operating-point netlists
+power_stage_muzzle.cir
+power_stage_mid.cir
+power_stage_terminal.cir
+
+# ngspice wrdata / ASCII output
+*.dat
+.directory

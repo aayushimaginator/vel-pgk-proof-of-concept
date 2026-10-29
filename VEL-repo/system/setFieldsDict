@@ -1,0 +1,26 @@
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      setFieldsDict;
+}
+
+defaultFieldValues
+(
+    volVectorFieldValue U (680 0 0)
+);
+
+regions
+(
+    sphereToCell
+    {
+        centre  (-0.1 0 0);
+        radius  0.03;
+
+        fieldValues
+        (
+            volVectorFieldValue U (0 0 0)
+        );
+    }
+);

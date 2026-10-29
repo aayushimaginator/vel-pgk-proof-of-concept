@@ -1,0 +1,50 @@
+* ============================================================
+* PGK Power Stage V6.1 - 24V bus, 2.5 ohm dump, 30W load
+* Edit SPEED: muzzle=13340 | mid=11285 | terminal=9541
+* ============================================================
+.INCLUDE pmsm_model.cir
+
+.TRAN 0.5u 5m 0 0.5u UIC
+.OPTIONS RELTOL=0.003 ABSTOL=1e-9 VNTOL=1e-5 ITL4=200
+
+XALT PA PB PC PMSM_ALT SPEED=11285 POLES=8
+
+.MODEL DSCH D(IS=1e-14 N=1.05 RS=0.01 CJO=50p)
+D1 PA DC_P DSCH
+D2 PB DC_P DSCH
+D3 PC DC_P DSCH
+D4 0 PA DSCH
+D5 0 PB DSCH
+D6 0 PC DSCH
+
+CBUS DC_P 0 22u IC=20
+
+* Load 30W @ 24V = 19.2 ohm + sense
+VSEN_L DC_P LOAD_HI DC 0
+RLOAD LOAD_HI 0 19.2
+
+* Brake/dump branch: 2.5 ohm -> 230W @24V -> ~164 mNm @1397 rad/s
+VSEN_B DC_P BRK_SENSE DC 0
+RBRK BRK_SENSE BRK_HI 2.5
+.MODEL SWBRK SW(VT=2.5 VH=0.5 RON=0.01 ROFF=10MEG)
+SBRAKE BRK_HI 0 GATE 0 SWBRK
+
+* Baseline: brake OFF. Uncomment PULSE for brake test (50% duty)
+VGATE GATE 0 DC 0
+*VGATE GATE 0 PULSE(0 5 0 1u 1u 25u 50u)
+
+* Overvoltage clamp at 24V
+BSHUNT DC_P 0 I={ (V(DC_P) > 24) ? 0.2*(V(DC_P)-24) : 0 }
+
+.CONTROL
+run
+wrdata pgk_power_mid.dat V(DC_P) V(GATE) i(VSEN_L) i(VSEN_B)
+meas tran v_bus_avg  AVG V(DC_P)   FROM=1m TO=5m
+meas tran v_bus_max  MAX V(DC_P)   FROM=1m TO=5m
+meas tran v_bus_min  MIN V(DC_P)   FROM=1m TO=5m
+meas tran i_load_avg AVG i(VSEN_L) FROM=1m TO=5m
+meas tran i_brake_avg AVG i(VSEN_B) FROM=1m TO=5m
+meas tran i_brake_max MAX i(VSEN_B) FROM=1m TO=5m
+echo "=== Power Stage V6.1 Complete ==="
+.endc
+.END
